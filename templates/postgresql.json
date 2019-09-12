@@ -1,0 +1,14 @@
+{
+    "type": "Microsoft.DBforPostgreSQL/servers",
+    "apiVersion": "2017-12-01-preview",
+    "name": "chgeuerautomationpostgresql",
+    "sku": {
+        "family": "Gen5", "capacity": "1", "name": "B_Gen5_1",
+        "tier": "Basic", "size": 5120
+    },
+    "properties": {
+        "version": "11",
+        "administratorLogin": "sapdscadmin",
+        "administratorLoginPassword": "xxx",
+        "storageProfile": { "storageMB": 5120, "backupRetentionDays": 7, "geoRedundantBackup": "Disabled", "storageAutoGrow": "Enabled" }    }
+}

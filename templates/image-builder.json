@@ -1,0 +1,88 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": { },
+    "variables": {
+        "prefix": "chgeuerauto",
+        "names": {
+            "keyvault": "chgeuerautomationkv",
+            "identity": "automationaccount"
+        },
+        "apiVersion": {
+            "sql_servers": "2014-04-01",
+            "sql_servers_databases": "2014-04-01",
+            "keyvault_vaults": "2018-02-14",
+            "keyvault_vaults_secrets": "2018-02-14",
+            "containerregistry_registries": "2017-10-01",
+            "containerregistry_registries_tasks": "2018-09-01",
+            "containerinstance_containergroups": "2018-10-01",
+            "managedidentity_userassignedidentities": "2018-11-30",
+            "virtualmachineimages_imagetemplates": "2019-05-01-preview"
+        }
+    },
+    "resources": [
+        {
+            "name": "imagebuilder2",
+            "type": "Microsoft.VirtualMachineImages/imageTemplates",
+            "apiVersion": "[variables('apiVersion').virtualmachineimages_imagetemplates]",
+            "location": "westus2",
+            "tags": {
+                "imagebuilderTemplate": "windows2019"
+            },
+            "identity": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                    "[resourceId(resourceGroup().name, 'Microsoft.ManagedIdentity/userAssignedIdentities', variables('names').identity)]": { }
+                }
+            },
+            "properties": {
+                "buildTimeoutInMinutes": 100,
+                "source": {
+                    "type": "PlatformImage",
+                    "publisher": "MicrosoftWindowsServer",
+                    "offer": "WindowsServer",
+                    "sku": "2019-Datacenter",
+                    "version": "2019.0.20190603"
+                },
+                "customize": [
+                    {
+                        "type": "PowerShell",
+                        "name": "CreateBuildPath",
+                        "scriptUri": "https://raw.githubusercontent.com/danielsollondon/azvmimagebuilder/master/testPsScript.ps1"
+                    },
+                    {
+                        "type": "PowerShell",
+                        "name": "settingUpMgmtAgtPath",
+                        "inline": [
+                            "Install-PackageProvider Nuget -Force",
+                            "Install-Module -Name PowerShellGet -Force",
+                            "Install-Module -Name AzureRM -Force",
+                            "Install-Module -Name AzureRM.KeyVault -Force",
+                            "Install-Module -Name AzureRM.Resources -Force",
+                            "Install-Script -Name New-OnPremiseHybridWorker -Force",
+                            "(New-Object System.Net.WebClient).DownloadFile(\"https://raw.githubusercontent.com/chgeuer/external_azureautomation_runbooks/180a18dd3982c8a1e511f28d1181a8fe208feadd/Utility/ARM/New-OnPremiseHybridWorker.ps1\", \"C:\\Program Files\\WindowsPowerShell\\Scripts\\New-OnPremiseHybridWorker.ps1\");"
+                        ]
+                    },
+                    {
+                        "type": "File",
+                        "name": "downloadBuildArtifacts",
+                        "sourceUri": "https://raw.githubusercontent.com/danielsollondon/azvmimagebuilder/master/quickquickstarts/exampleArtifacts/buildArtifacts/index.html",
+                        "destination": "c:\\buildArtifacts\\index.html"
+                    }
+                ],
+                "distribute": [
+                    {
+                        "type": "ManagedImage",
+                        "imageId": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Compute/images/foo123')]",
+                        "location": "westeurope",
+                        "runOutputName": "runOutputName",
+                        "artifactTags": {
+                            "source": "azVmImageBuilder",
+                            "baseosimg": "windows2019"
+                        }
+                    }
+                ]
+            }
+        }
+    ]
+}
