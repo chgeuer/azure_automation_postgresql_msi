@@ -1,0 +1,7 @@
+{
+    "PostgreSQL": {
+        "Host": "chgeuerautomationpostgresql",
+        "User": "sapdscadmin",
+        "Database": "sapdsc"
+    }
+}

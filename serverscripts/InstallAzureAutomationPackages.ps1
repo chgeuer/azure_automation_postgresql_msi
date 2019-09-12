@@ -1,3 +1,5 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
 
 # https://docs.microsoft.com/en-us/powershell/gallery/installing-psget
 Install-PackageProvider Nuget -Force

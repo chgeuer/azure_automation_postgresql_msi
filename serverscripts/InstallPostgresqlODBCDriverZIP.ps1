@@ -1,3 +1,7 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
+
 # Local installation for current user didn't work. Approaches include
 # Setting this file requires admin rights `C:\WINDOWS\SYSTEM32\ODBC Drivers\PostgreSQL UNICODE(x64).ini`
 # `HKEY_CURRENT_USER\Software\ODBC\ODBC.INI` is ignored by `System.Data.Odbc.OdbcConnection`

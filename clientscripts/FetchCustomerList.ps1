@@ -1,7 +1,7 @@
-$AzurePostgreSQLInstance = "chgeuerautomationpostgresql"
-$AzurePostgreSQLDatabase = "sapdsc"
-$SqlUsername = "sapdscadmin"
-$SqlPassword = "supersecret123.-"
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
+. "$($PSScriptRoot)\SQL-Vars.ps1"
 
 $DBConn = New-Object System.Data.Odbc.OdbcConnection;
 $DBConn.ConnectionString = "Driver={PostgreSQL UNICODE(x64)};Server=$($AzurePostgreSQLInstance).postgres.database.azure.com;Port=5432;Database=$($AzurePostgreSQLDatabase);Uid=$($SqlUsername)@$($AzurePostgreSQLInstance);Pwd=$($SqlPassword);Options='autocommit=off';sslmode=require;"

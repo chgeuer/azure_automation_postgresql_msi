@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 $null = Login-AzureRmAccount -Identity # VM must have proper managed identiy assigned
 
 $rawMetadata = Invoke-RestMethod `

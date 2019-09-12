@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 $tags =@{}
 $rawMetadata = Invoke-RestMethod `
     -Headers @{"Metadata"="true"} `
