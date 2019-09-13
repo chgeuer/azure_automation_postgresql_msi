@@ -1,0 +1,114 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "2.0.0.0",
+    "parameters": { },
+    "variables": {
+        "prefix": "chgp",
+        "names": {
+            "keyvault": "[concat(variables('prefix'), '-kv')]",
+            "identity": "[concat(variables('prefix'), '-identity')]",
+            "vnet": "[concat(variables('prefix'), '-vnet')]"
+        },
+        "apiVersion": {
+            "sql_servers": "2014-04-01",
+            "sql_servers_databases": "2014-04-01",
+            "keyvault_vaults": "2018-02-14",
+            "keyvault_vaults_secrets": "2018-02-14",
+            "containerregistry_registries": "2017-10-01",
+            "containerregistry_registries_tasks": "2018-09-01",
+            "containerinstance_containergroups": "2018-10-01",
+            "managedidentity_userassignedidentities": "2018-11-30",
+            "virtualmachineimages_imagetemplates": "2019-05-01-preview",
+            "virtualmachineimages": "2019-03-01",
+            "publicIPAddresses": "2017-08-01",
+            "networkSecurityGroups": "2017-06-01",
+            "virtualNetworks": "2017-08-01"
+        },
+        "vnet": {
+            "addresses": {
+                "addressSpace": "10.0.0.0/16",
+                "subnet": {
+                    "automation": "10.0.250.0/24"
+                }
+            }
+        }
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "apiVersion": "[variables('apiVersion').networkSecurityGroups]",
+            "location": "[resourceGroup().location]",
+            "name": "[concat(variables('prefix'), '-nsg-automation')]",
+            "tags": {
+                "displayName": "NetworkSecurityGroup Automation"
+            },
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "inbound-rdp",
+                        "properties": {
+                            "priority": 100,
+                            "description": "Allow Inbound RDP",
+                            "access": "Allow",
+                            "direction": "Inbound",
+                            "protocol": "Tcp",
+                            "sourceAddressPrefix": "Internet",
+                            "sourcePortRange": "*",
+                            "destinationAddressPrefix": "[variables('vnet').addresses.subnet.automation]",
+                            "destinationPortRange": "3389"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "[variables('apiVersion').virtualNetworks]",
+            "name": "[variables('names').vnet]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[concat('Microsoft.Network/networkSecurityGroups/', concat(variables('prefix'), '-nsg-automation'))]"
+            ],
+            "tags": {
+                "displayName": "A virtual network"
+            },
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[variables('vnet').addresses.addressSpace]"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "[concat(variables('prefix'), '-subnet-automation')]",
+                        "properties": {
+                            "addressPrefix": "[variables('vnet').addresses.subnet.automation]",
+                            "networkSecurityGroup": {
+                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', concat(variables('prefix'), '-nsg-automation'))]"
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ],
+    "functions": [
+        {
+            "namespace": "postgresql",
+            "members": {
+                "createOdbcConnectionString": {
+                    "parameters": [
+                        { "name": "server", "type": "string" },
+                        { "name": "database", "type": "string" },
+                        { "name": "username", "type": "string" },
+                        { "name": "password", "type": "string" }
+                    ],
+                    "output": {
+                        "value": "[concat('jdbc:sqlserver://', parameters('server'), '.database.windows.net:1433;database=', parameters('database'), ';user=', parameters('username'), '@', parameters('server'), ';password=', parameters('password'), ';encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=30;')]",
+                        "type": "string"
+                    }
+                }
+            }
+        }
+    ]
+}
