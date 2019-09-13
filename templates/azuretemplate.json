@@ -1,29 +1,39 @@
 {
     "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
     "contentVersion": "2.0.0.0",
-    "parameters": { },
+    "parameters": {
+        "adminPassword": {
+            "type": "securestring",
+            "defaultValue": "...."
+        }
+    },
     "variables": {
-        "prefix": "chgp",
+        "deploymentName": "chgp",
         "names": {
-            "keyvault": "[concat(variables('prefix'), '-kv')]",
-            "identity": "[concat(variables('prefix'), '-identity')]",
-            "vnet": "[concat(variables('prefix'), '-vnet')]"
+            "keyvault": "[concat(variables('deploymentName'), '-kv')]",
+            "identity": "[concat(variables('deploymentName'), '-identity')]",
+            "vnet": "[concat(variables('deploymentName'), '-vnet')]",
+            "postgresql": "[concat(variables('deploymentName'), '-postgresql')]",
+            "postgresql_database": "tenantdata"
+        },
+        "adminUserName": "chgeuer",
+        "adminPassword": "[parameters('adminPassword')]",
+        "postgresql": {
+            "administratorLogin": "[variables('deploymentName')]",
+            "administratorLoginPassword": "[parameters('adminPassword')]"
         },
         "apiVersion": {
-            "sql_servers": "2014-04-01",
-            "sql_servers_databases": "2014-04-01",
             "keyvault_vaults": "2018-02-14",
             "keyvault_vaults_secrets": "2018-02-14",
-            "containerregistry_registries": "2017-10-01",
-            "containerregistry_registries_tasks": "2018-09-01",
-            "containerinstance_containergroups": "2018-10-01",
             "managedidentity_userassignedidentities": "2018-11-30",
             "virtualmachineimages_imagetemplates": "2019-05-01-preview",
             "virtualmachineimages": "2019-03-01",
+            "virtualMachines": "2019-03-01",
             "publicIPAddresses": "2017-08-01",
             "networkInterfaces": "2016-09-01",
             "networkSecurityGroups": "2017-06-01",
-            "virtualNetworks": "2017-08-01"
+            "virtualNetworks": "2017-08-01",
+            "dbforpostgresql_servers": "2017-12-01-preview"
         },
         "vnet": {
             "addresses": {
@@ -40,10 +50,103 @@
     },
     "resources": [
         {
+            "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+            "apiVersion": "[variables('apiVersion').managedidentity_userassignedidentities]",
+            "location": "[resourceGroup().location]",
+            "name": "[variables('names').identity]",
+            "tags": {
+                "displayName": "User-assigned Identity"
+            }
+        },
+        {
+            "type": "Microsoft.DBforPostgreSQL/servers",
+            "apiVersion": "[variables('apiVersion').dbforpostgresql_servers]",
+            "location": "[resourceGroup().location]",
+            "name": "[variables('names').postgresql]",
+            "tags": {
+                "displayName": "PostgreSQL Database"
+            },
+            "sku": {
+                "family": "Gen5",
+                "capacity": 1,
+                "name": "B_Gen5_1",
+                "tier": "Basic"
+            },
+            "properties": {
+                "version": "11",
+                "createMode": "Default",
+                "administratorLogin": "[variables('postgresql').administratorLogin]",
+                "administratorLoginPassword": "[variables('postgresql').administratorLoginPassword]",
+                "sslEnforcement": "Enabled",
+                "storageProfile": {
+                    "storageMB": 5120,
+                    "backupRetentionDays": 7,
+                    "geoRedundantBackup": "Disabled",
+                    "storageAutoGrow": "Enabled"
+                }
+            },
+            "resources": [
+                {
+                    "type": "firewallRules",
+                    "apiVersion": "[variables('apiVersion').dbforpostgresql_servers]",
+                    "location": "[resourceGroup().location]",
+                    "name": "free-lunch",
+                    "dependsOn": [ "[concat('Microsoft.DBforPostgreSQL/servers/', variables('names').postgresql)]" ],
+                    "properties": { "startIpAddress": "0.0.0.0", "endIpAddress": "255.255.255.255" }
+                },
+                {
+                    "type": "firewallRules",
+                    "apiVersion": "[variables('apiVersion').dbforpostgresql_servers]",
+                    "location": "[resourceGroup().location]",
+                    "name": "AllowAllWindowsAzureIps",
+                    "dependsOn": [ "[concat('Microsoft.DBforPostgreSQL/servers/', variables('names').postgresql)]" ],
+                    "properties": { "startIpAddress": "0.0.0.0", "endIpAddress": "0.0.0.0" }
+                }
+            ]
+        },
+        {
+            "type": "Microsoft.KeyVault/vaults",
+            "name": "[variables('names').keyvault]",
+            "apiVersion": "[variables('apiVersion').keyvault_vaults]",
+            "location": "[resourceGroup().location]",
+            "tags": { "displayName": "Key Vault" },
+            "dependsOn": [ 
+                "[concat('Microsoft.ManagedIdentity/userAssignedIdentities/', variables('names').identity)]",
+                "[concat('Microsoft.DBforPostgreSQL/servers/', variables('names').postgresql)]"
+            ],
+            "properties": {
+                "tenantId": "[subscription().tenantId]",
+                "enabledForDeployment": false,
+                "enabledForDiskEncryption": false,
+                "enabledForTemplateDeployment": true,
+                "sku": { "name": "Standard", "family": "A" },
+                "networkAcls": { "value": { "defaultAction": "Allow", "bypass": "AzureServices" } },
+                "accessPolicies": [
+                    {
+                        "tenantId": "[subscription().tenantId]",
+                        "objectId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('names').identity), variables('apiVersion').managedidentity_userassignedidentities).principalId]",
+                        "permissions": { "secrets": [ "get", "list" ] }
+                    }
+                ]
+            },
+            "resources": [
+                {
+                    "type": "secrets",
+                    "apiVersion": "[variables('apiVersion').keyvault_vaults_secrets]",
+                    "dependsOn": [ "[concat('Microsoft.KeyVault/vaults/', variables('names').keyvault)]" ],
+                    "name": "postgresdatabaseconnectionstring",
+                    "properties": {
+                        "contentType": "string",
+                        "value": "[postgresql.createOdbcConnectionString(variables('names').postgresql, variables('names').postgresql_database, variables('postgresql').administratorLogin, variables('postgresql').administratorLoginPassword)]"
+                    }
+                }
+            ]
+        },
+        {
             "type": "Microsoft.Network/networkSecurityGroups",
             "apiVersion": "[variables('apiVersion').networkSecurityGroups]",
             "location": "[resourceGroup().location]",
-            "name": "[concat(variables('prefix'), '-nsg-automation')]",
+            "name": "[concat(variables('deploymentName'), '-nsg-automation')]",
             "tags": {
                 "displayName": "NetworkSecurityGroup Automation"
             },
@@ -72,7 +175,7 @@
             "name": "[variables('names').vnet]",
             "location": "[resourceGroup().location]",
             "dependsOn": [
-                "[concat('Microsoft.Network/networkSecurityGroups/', concat(variables('prefix'), '-nsg-automation'))]"
+                "[concat('Microsoft.Network/networkSecurityGroups/', concat(variables('deploymentName'), '-nsg-automation'))]"
             ],
             "tags": {
                 "displayName": "A virtual network"
@@ -85,11 +188,11 @@
                 },
                 "subnets": [
                     {
-                        "name": "[concat(variables('prefix'), '-subnet-automation')]",
+                        "name": "[concat(variables('deploymentName'), '-subnet-automation')]",
                         "properties": {
                             "addressPrefix": "[variables('vnet').addresses.subnet.automation]",
                             "networkSecurityGroup": {
-                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', concat(variables('prefix'), '-nsg-automation'))]"
+                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', concat(variables('deploymentName'), '-nsg-automation'))]"
                             }
                         }
                     }
@@ -98,7 +201,7 @@
         },
         {
             "type": "Microsoft.Network/networkInterfaces",
-            "name": "[concat(variables('prefix'), '-nic-automationworker-', string(copyIndex()))]",
+            "name": "[concat(variables('deploymentName'), '-nic-automationworker-', string(copyIndex()))]",
             "apiVersion": "[variables('apiVersion').networkInterfaces]",
             "location": "[resourceGroup().location]",
             "copy": {
@@ -120,11 +223,62 @@
                             "privateIpAddress": "[concat(variables('vnet').addresses.subnetPrefix.automation, string(add(10, copyIndex())))]",
                             "privateIPAllocationMethod": "Static",
                             "subnet": {
-                                "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', variables('names').vnet), '/subnets/', concat(variables('prefix'), '-subnet-automation'))]"
+                                "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', variables('names').vnet), '/subnets/', concat(variables('deploymentName'), '-subnet-automation'))]"
                             }
                         }
                     }
                 ]
+            }
+        },
+        {
+            "name": "[concat(variables('deploymentName'), '-vm-autom', string(copyIndex()))]",
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "[variables('apiVersion').virtualMachines]",
+            "location": "[resourceGroup().location]",
+            "copy": {
+                "name": "vm-automationworker-copy",
+                "count": "[variables('automationWorkerCount')]"
+            },
+            "dependsOn": [ 
+                "[concat('Microsoft.ManagedIdentity/userAssignedIdentities/', variables('names').identity)]",
+                "[concat('Microsoft.Network/networkInterfaces/', concat(variables('deploymentName'), '-nic-automationworker-', string(copyIndex())))]"
+            ],
+            "identity": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                    "[resourceId(resourceGroup().name, 'Microsoft.ManagedIdentity/userAssignedIdentities', variables('names').identity)]": { }
+                }
+            },
+            "tags": {
+                "displayName": "An Azure Automation VM",
+                "automationaccountname": "chgeuerautomation",
+                "hybridgroupname": "chgeuerautomation_hybrid_group",
+                "workspacename": "loganalyticsworkspacechgeuer1",
+                "keyvaultname": "chgeuerautomationkv"
+            },
+            "properties": {
+                "networkProfile": { "networkInterfaces": [ { "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('deploymentName'), '-nic-automationworker-', string(copyIndex())))]" } ] },
+                "osProfile": {
+                    "computerName": "[concat(variables('deploymentName'), '-vm-autom', string(copyIndex()))]",
+                    "adminUsername": "[variables('adminUserName')]",
+                    "adminPassword": "[variables('adminPassword')]",
+                    "windowsConfiguration": {
+                        "enableAutomaticUpdates": true,
+                        "provisionVMAgent": true
+                    }
+                },
+                "hardwareProfile": { "vmSize": "Standard_D2s_v3" },
+                "storageProfile": {
+                    "imageReference": {
+                        "id": "/subscriptions/724467b5-bee4-484b-bf13-d6a5505d2b51/resourceGroups/automation/providers/Microsoft.Compute/images/foo123"
+                    },
+                    "osDisk": {
+                        "name": "[concat(variables('deploymentName'), '-vm-automationworker-osdisk-', string(copyIndex()))]",
+                        "createOption": "FromImage",
+                        "diskSizeGB": 127,
+                        "managedDisk": { "storageAccountType": "Premium_LRS" }
+                    }
+                }
             }
         }
     ],
@@ -140,7 +294,7 @@
                         { "name": "password", "type": "string" }
                     ],
                     "output": {
-                        "value": "[concat('jdbc:sqlserver://', parameters('server'), '.database.windows.net:1433;database=', parameters('database'), ';user=', parameters('username'), '@', parameters('server'), ';password=', parameters('password'), ';encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=30;')]",
+                        "value": "[concat('Driver={PostgreSQL UNICODE(x64)};Server=', parameters('server'), '.postgres.database.azure.com;Port=5432;Database=', parameters('database'), ';Uid=', parameters('username'), '@', parameters('server'), ';Pwd=', parameters('password'), ';Options=''autocommit=off'';sslmode=require;')]",
                         "type": "string"
                     }
                 }
