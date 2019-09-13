@@ -4,7 +4,7 @@
     "parameters": {
         "adminPassword": {
             "type": "securestring",
-            "defaultValue": "...."
+            "defaultValue": "..."
         }
     },
     "variables": {
@@ -13,14 +13,15 @@
             "keyvault": "[concat(variables('deploymentName'), '-kv')]",
             "identity": "[concat(variables('deploymentName'), '-identity')]",
             "vnet": "[concat(variables('deploymentName'), '-vnet')]",
-            "postgresql": "[concat(variables('deploymentName'), '-postgresql')]",
-            "postgresql_database": "tenantdata"
+            "postgresql": "[concat(variables('deploymentName'), '-postgresql')]"
+            
         },
         "adminUserName": "chgeuer",
         "adminPassword": "[parameters('adminPassword')]",
         "postgresql": {
             "administratorLogin": "[variables('deploymentName')]",
-            "administratorLoginPassword": "[parameters('adminPassword')]"
+            "administratorLoginPassword": "[parameters('adminPassword')]",
+            "database": "tenantdata"
         },
         "apiVersion": {
             "keyvault_vaults": "2018-02-14",
@@ -137,7 +138,7 @@
                     "name": "postgresdatabaseconnectionstring",
                     "properties": {
                         "contentType": "string",
-                        "value": "[postgresql.createOdbcConnectionString(variables('names').postgresql, variables('names').postgresql_database, variables('postgresql').administratorLogin, variables('postgresql').administratorLoginPassword)]"
+                        "value": "[postgresql.createOdbcConnectionString(variables('names').postgresql, variables('postgresql').database, variables('postgresql').administratorLogin, variables('postgresql').administratorLoginPassword)]"
                     }
                 }
             ]

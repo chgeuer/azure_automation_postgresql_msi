@@ -1,7 +1,10 @@
 {
     "PostgreSQL": {
-        "Host": "chgeuerautomationpostgresql",
-        "User": "sapdscadmin",
-        "Database": "sapdsc"
+        "Host": "chgp-postgresql",
+        "User": "chgp",
+        "Database": "tenantdata"
+    },
+    "KeyVault": {
+        "name": "chgp-kv"
     }
 }
