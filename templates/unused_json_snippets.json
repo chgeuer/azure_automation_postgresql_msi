@@ -1,0 +1,20 @@
+{
+    "type": "Microsoft.Automation/automationAccounts",
+    "resources": [
+        {
+            "type": "connections",
+            "name": "AzureRunAsConnection",
+            "location": "[resourceGroup().location]",
+            "apiVersion": "[variables('apiVersion').automation_automationAccounts]",
+            "dependsOn": [ "[concat('Microsoft.Automation/automationAccounts/', variables('names').automation)]" ],
+            "tags": { "displayName": "Connection with Service Principal" },
+            "properties": {
+                "description": "TODO Maybe we do not need this SP.",
+                "connectionType": { "name": "AzureServicePrincipal" },
+                "fieldDefinitionValues": { 
+                    // "https://blog.woivre.fr/blog/2019/03/arm-provisionnez-un-azure-automation-avec-un-runasaccount"
+                }
+            }
+        }
+    ]
+}

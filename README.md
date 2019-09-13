@@ -4,6 +4,19 @@
 
 - [deploy](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fchgeuer%2Fazure_automation_postgresql_msi%2Fmaster%2Ftemplates%2Fazuretemplate.json)
 
+```powershell
+$repo = "chgeuer/external_azureautomation_runbooks"
+$revision = "d83c4994f2c93232720a987609fd7d2a712de05a"
+(New-Object System.Net.WebClient).DownloadFile(
+    "https://raw.githubusercontent.com/$repo/$revision/Utility/ARM/New-OnPremiseHybridWorker.ps1",
+    "C:\Program Files\WindowsPowerShell\Scripts\New-OnPremiseHybridWorker.ps1");
+
+$s = "JoinAzureAutomationHybridWorkerGroup.ps1"
+(New-Object System.Net.WebClient).DownloadFile(
+    "https://raw.githubusercontent.com/chgeuer/azure_automation_postgresql_msi/master/serverscripts/$s",
+    "$s");
+.\JoinAzureAutomationHybridWorkerGroup.ps1
+```
 
 ## Requirements
 

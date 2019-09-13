@@ -2,10 +2,7 @@
     "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
     "contentVersion": "2.0.0.0",
     "parameters": {
-        "adminPassword": {
-            "type": "securestring",
-            "defaultValue": "..."
-        }
+        "adminPassword": { "type": "securestring", "defaultValue": "..." }
     },
     "variables": {
         "deploymentName": "chgp",
@@ -13,8 +10,11 @@
             "keyvault": "[concat(variables('deploymentName'), '-kv')]",
             "identity": "[concat(variables('deploymentName'), '-identity')]",
             "vnet": "[concat(variables('deploymentName'), '-vnet')]",
-            "postgresql": "[concat(variables('deploymentName'), '-postgresql')]"
-            
+            "postgresql": "[concat(variables('deploymentName'), '-postgresql')]",
+            "automation": "[concat(variables('deploymentName'), '-auto')]"
+        },
+        "automation": {
+            "scriptBaseURL": "https://raw.githubusercontent.com/chgeuer/azure_automation_postgresql_msi/master/serverscripts/"
         },
         "adminUserName": "chgeuer",
         "adminPassword": "[parameters('adminPassword')]",
@@ -34,7 +34,9 @@
             "networkInterfaces": "2016-09-01",
             "networkSecurityGroups": "2017-06-01",
             "virtualNetworks": "2017-08-01",
-            "dbforpostgresql_servers": "2017-12-01-preview"
+            "dbforpostgresql_servers": "2017-12-01-preview",
+            "automation_automationAccounts": "2015-10-31",
+            "automation_automationAccounts_runbooks": "2018-06-30"
         },
         "vnet": {
             "addresses": {
@@ -55,9 +57,7 @@
             "apiVersion": "[variables('apiVersion').managedidentity_userassignedidentities]",
             "location": "[resourceGroup().location]",
             "name": "[variables('names').identity]",
-            "tags": {
-                "displayName": "User-assigned Identity"
-            }
+            "tags": { "displayName": "User-assigned Identity" }
         },
         {
             "type": "Microsoft.DBforPostgreSQL/servers",
@@ -92,6 +92,7 @@
                     "apiVersion": "[variables('apiVersion').dbforpostgresql_servers]",
                     "location": "[resourceGroup().location]",
                     "name": "free-lunch",
+                    "tags": { "displayName": "!!! Whole Internet can connect." },
                     "dependsOn": [ "[concat('Microsoft.DBforPostgreSQL/servers/', variables('names').postgresql)]" ],
                     "properties": { "startIpAddress": "0.0.0.0", "endIpAddress": "255.255.255.255" }
                 },
@@ -100,6 +101,7 @@
                     "apiVersion": "[variables('apiVersion').dbforpostgresql_servers]",
                     "location": "[resourceGroup().location]",
                     "name": "AllowAllWindowsAzureIps",
+                    "tags": { "displayName": "Azure IPs can access" },
                     "dependsOn": [ "[concat('Microsoft.DBforPostgreSQL/servers/', variables('names').postgresql)]" ],
                     "properties": { "startIpAddress": "0.0.0.0", "endIpAddress": "0.0.0.0" }
                 }
@@ -136,9 +138,50 @@
                     "apiVersion": "[variables('apiVersion').keyvault_vaults_secrets]",
                     "dependsOn": [ "[concat('Microsoft.KeyVault/vaults/', variables('names').keyvault)]" ],
                     "name": "postgresdatabaseconnectionstring",
+                    "tags": { "displayName": "ODBC Connection string for .NET (and PowerShell)." },
                     "properties": {
                         "contentType": "string",
                         "value": "[postgresql.createOdbcConnectionString(variables('names').postgresql, variables('postgresql').database, variables('postgresql').administratorLogin, variables('postgresql').administratorLoginPassword)]"
+                    }
+                }
+            ]
+        },
+        {
+            "type": "Microsoft.Automation/automationAccounts",
+            "apiVersion": "[variables('apiVersion').automation_automationAccounts]",
+            "name": "[variables('names').automation]",
+            "location": "[resourceGroup().location]",
+            "tags": { "displayName": "Automation Account" },
+            "properties": {
+                "sku": { "name": "Basic" }
+            },
+            "resources": [
+                {
+                    "type": "runbooks",
+                    "apiVersion": "[variables('apiVersion').automation_automationAccounts_runbooks]",
+                    "name": "PostgreSQL-Managed-Identity-Crawler",
+                    "location": "[resourceGroup().location]",
+                    "dependsOn": [ "[concat('Microsoft.Automation/automationAccounts/', variables('names').automation)]" ],
+                    "tags": { "displayName": "A runbook which uses a managed identity to iterate over all resource groups" },
+                    "properties": {
+                        "description": "A runbook which uses a managed identity to iterate over all resource groups",
+                        "runbookType": "PowerShell",
+                        "publishContentLink": {
+                            "uri": "[concat(variables('automation').scriptBaseURL, 'ListResourcesAcrossSubscriptionsUserIdentity.ps1')]",
+                            "version": "1.0.0.0"
+                        },
+                        "logProgress": false, "logVerbose": false
+                    }
+                },
+                {
+                    "type": "variables",
+                    "apiVersion": "[variables('apiVersion').automation_automationAccounts]",
+                    "dependsOn": [ "[concat('Microsoft.Automation/automationAccounts/', variables('names').automation)]" ],
+                    "tags": { "displayName": "Variable containing the name of keyvault" },
+                    "name": "keyvaultname",
+                    "properties": {
+                      "value": "[automation.variableFromString(variables('names').keyvault))]",
+                      "isEncrypted": false
                     }
                 }
             ]
@@ -284,6 +327,19 @@
         }
     ],
     "functions": [
+        {
+            "namespace": "automation",
+            "members": {
+                "variableFromString": {
+                    "parameters": [ { "name": "value", "type": "string" } ],
+                    "output": { "type": "string", "value": "[concat('\"', parameters('value'), '\"')]" }
+                },
+                "variableFromInt": {
+                    "parameters": [ { "name": "value", "type": "int" } ],
+                    "output": { "type": "string", "value": "[parameters('value')]" }
+                }
+            }
+        },
         {
             "namespace": "postgresql",
             "members": {
