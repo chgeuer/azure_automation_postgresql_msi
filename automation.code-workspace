@@ -5,6 +5,9 @@
 		},
 		{
 			"path": "C:\\github\\danielsollondon\\azvmimagebuilder"
+		},
+		{
+			"path": "C:\\github\\chgeuer\\external_azureautomation_runbooks\\Utility\\ARM"
 		}
 	],
 	"settings": {}
