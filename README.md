@@ -1,5 +1,10 @@
 # `azure_automation_postgresql_msi` - A demo bringing together Azure Automation, PostgreSQL and user-assigned managed identity.
 
+## Deploy
+
+- [deploy](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fchgeuer%2Fazure_automation_postgresql_msi%2Fmaster%2Ftemplates%2Fazuretemplate.json)
+
+
 ## Requirements
 
 - A multi-tenant SaaS solution stores tenant-specific management information in PostgreSQL.

@@ -21,6 +21,7 @@
             "virtualmachineimages_imagetemplates": "2019-05-01-preview",
             "virtualmachineimages": "2019-03-01",
             "publicIPAddresses": "2017-08-01",
+            "networkInterfaces": "2016-09-01",
             "networkSecurityGroups": "2017-06-01",
             "virtualNetworks": "2017-08-01"
         },
@@ -29,9 +30,13 @@
                 "addressSpace": "10.0.0.0/16",
                 "subnet": {
                     "automation": "10.0.250.0/24"
+                },
+                "subnetPrefix": {
+                    "automation": "10.0.250."
                 }
             }
-        }
+        },
+        "automationWorkerCount": 1
     },
     "resources": [
         {
@@ -85,6 +90,37 @@
                             "addressPrefix": "[variables('vnet').addresses.subnet.automation]",
                             "networkSecurityGroup": {
                                 "id": "[resourceId('Microsoft.Network/networkSecurityGroups', concat(variables('prefix'), '-nsg-automation'))]"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[concat(variables('prefix'), '-nic-automationworker-', string(copyIndex()))]",
+            "apiVersion": "[variables('apiVersion').networkInterfaces]",
+            "location": "[resourceGroup().location]",
+            "copy": {
+                "name": "nic-automationWorker-copy",
+                "count": "[variables('automationWorkerCount')]"
+            },
+            "dependsOn": [
+                "[concat('Microsoft.Network/virtualNetworks/', variables('names').vnet)]"
+            ],
+            "tags": {
+                "displayName": "NIC Automation Worker"
+            },
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIpAddressVersion": "IPv4",
+                            "privateIpAddress": "[concat(variables('vnet').addresses.subnetPrefix.automation, string(add(10, copyIndex())))]",
+                            "privateIPAllocationMethod": "Static",
+                            "subnet": {
+                                "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', variables('names').vnet), '/subnets/', concat(variables('prefix'), '-subnet-automation'))]"
                             }
                         }
                     }
