@@ -1,10 +1,10 @@
 {
-    "PostgreSQL": {
-        "Host": "sapdsc-postgresql",
-        "User": "sapdsc",
-        "Database": "tenantdata"
-    },
     "KeyVault": {
-        "name": "sapdsc-kv"
+        "name": "chris-kv"
+    },
+    "PostgreSQL": {
+        "Host": "chris-postgresql",
+        "User": "chris",
+        "Database": "tenantdata"
     }
 }

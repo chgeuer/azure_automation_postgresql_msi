@@ -2,10 +2,11 @@
     "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
     "contentVersion": "2.0.0.0",
     "parameters": {
-        "adminPassword": { "type": "securestring", "defaultValue": "..." }
+        "deploymentName": { "type": "string", "defaultValue": "chgp" },
+        "adminPassword": { "type": "securestring" }
     },
     "variables": {
-        "deploymentName": "sapdsc",
+        "deploymentName": "[parameters('deploymentName')]",
         "names": {
             "keyvault": "[concat(variables('deploymentName'), '-kv')]",
             "identity": "[concat(variables('deploymentName'), '-identity')]",
