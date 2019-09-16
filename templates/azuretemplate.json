@@ -38,7 +38,7 @@
             "virtualmachines_extensions": "2019-03-01",
             "virtualmachineimages": "2019-03-01",
             "virtualmachineimages_imagetemplates": "2019-05-01-preview",
-            "publicIPAddresses": "2017-08-01",
+            "publicIPAddresses": "2019-04-01",
             "networkInterfaces": "2016-09-01",
             "networkSecurityGroups": "2017-06-01",
             "virtualNetworks": "2017-08-01",
@@ -236,10 +236,6 @@
                 }
             ]
         },
-
-
-
-
         {
             "type": "Microsoft.Network/networkSecurityGroups",
             "apiVersion": "[variables('apiVersion').networkSecurityGroups]",
@@ -293,6 +289,22 @@
                 ]
             }
         },
+        { 
+            "type": "Microsoft.Network/publicIPAddresses",
+            "apiVersion": "[variables('apiVersion').publicIPAddresses]",
+            "name": "[concat(variables('deploymentName'), '-vm-autom', string(copyIndex()), '-pubip')]",
+            "copy": {
+                "name": "vm-automationworker-publicIP-copy",
+                "count": "[variables('automationWorkerCount')]"
+            },
+            "tags": { "displayName": "Public IP" },
+            "location": "[resourceGroup().location]",
+            "sku": { "name": "Basic" },
+            "properties": {
+                "idleTimeoutInMinutes": 30,
+                "publicIpAddressVersion": "IPv4"
+            }
+        },
         {
             "type": "Microsoft.Network/networkInterfaces",
             "name": "[concat(variables('deploymentName'), '-nic-automationworker-', string(copyIndex()))]",
@@ -303,7 +315,8 @@
                 "count": "[variables('automationWorkerCount')]"
             },
             "dependsOn": [
-                "[concat('Microsoft.Network/virtualNetworks/', variables('names').vnet)]"
+                "[concat('Microsoft.Network/virtualNetworks/', variables('names').vnet)]",
+                "[concat('Microsoft.Network/publicIPAddresses/', concat(variables('deploymentName'), '-vm-autom', string(copyIndex()), '-pubip'))]"
             ],
             "tags": {
                 "displayName": "NIC Automation Worker"
@@ -316,9 +329,8 @@
                             "privateIpAddressVersion": "IPv4",
                             "privateIpAddress": "[concat(variables('vnet').addresses.subnetPrefix.automation, string(add(10, copyIndex())))]",
                             "privateIPAllocationMethod": "Static",
-                            "subnet": {
-                                "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', variables('names').vnet), '/subnets/', concat(variables('deploymentName'), '-subnet-automation'))]"
-                            }
+                            "subnet": { "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', variables('names').vnet), '/subnets/', concat(variables('deploymentName'), '-subnet-automation'))]" },
+                            "publicIPAddress": { "id": "[concat(resourceId('Microsoft.Network/publicIPAddresses', concat(variables('deploymentName'), '-vm-autom', string(copyIndex()), '-pubip')))]" }
                         }
                     }
                 ]
