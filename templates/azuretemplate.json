@@ -45,7 +45,8 @@
             "dbforpostgresql_servers": "2017-12-01-preview",
             "automation_automationAccounts": "2015-10-31",
             "automation_automationAccounts_runbooks": "2018-06-30",
-            "operationalInsights_workspaces": "2017-03-15-preview"
+            "operationalInsights_workspaces": "2017-03-15-preview",
+            "authorization_roleassignments": "2018-09-01-preview"
         },
         "vnet": {
             "addresses": {
@@ -58,7 +59,10 @@
                 }
             }
         },
-        "automationWorkerCount": 1
+        "automationWorkerCount": 1,
+        "roles": {
+            "Contributor": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]"
+        }
     },
     "resources": [
         {
@@ -171,9 +175,27 @@
             "name": "[variables('names').automation]",
             "location": "[resourceGroup().location]",
             "tags": { "displayName": "Automation Account" },
-            "dependsOn": [ "[concat('Microsoft.OperationalInsights/workspaces/', variables('names').loganalytics)]" ],
+            "dependsOn": [ 
+                "[concat('Microsoft.ManagedIdentity/userAssignedIdentities/', variables('names').identity)]",
+                "[concat('Microsoft.OperationalInsights/workspaces/', variables('names').loganalytics)]" 
+            ],
             "properties": { "sku": { "name": "Basic" } },
             "resources": [
+                {
+                    "type": "Microsoft.Automation/automationAccounts/providers/roleAssignments",
+                    "name": "[concat(variables('names').automation, '/Microsoft.Authorization/', guid(resourceGroup().id))]",
+                    "apiVersion": "[variables('apiVersion').authorization_roleassignments]",
+                    "dependsOn": [ 
+                        "[concat('Microsoft.ManagedIdentity/userAssignedIdentities/', variables('names').identity)]",
+                        "[concat('Microsoft.Automation/automationAccounts/', variables('names').automation)]" 
+                    ],
+                    "properties": {
+                        "roleDefinitionId": "[variables('roles').Contributor]",
+                        "principalType": "ServicePrincipal",
+                        "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('names').identity), variables('apiVersion').managedidentity_userassignedidentities).principalId]",
+                        "scope": "[resourceId('Microsoft.Automation/automationAccounts', variables('names').automation)]"
+                    }
+                },
                 {
                     "type": "runbooks",
                     "apiVersion": "[variables('apiVersion').automation_automationAccounts_runbooks]",
@@ -214,6 +236,10 @@
                 }
             ]
         },
+
+
+
+
         {
             "type": "Microsoft.Network/networkSecurityGroups",
             "apiVersion": "[variables('apiVersion').networkSecurityGroups]",
