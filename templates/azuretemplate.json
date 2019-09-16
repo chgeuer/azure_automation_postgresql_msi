@@ -11,12 +11,17 @@
             "identity": "[concat(variables('deploymentName'), '-identity')]",
             "vnet": "[concat(variables('deploymentName'), '-vnet')]",
             "postgresql": "[concat(variables('deploymentName'), '-postgresql')]",
-            "automation": "[concat(variables('deploymentName'), '-auto')]"
+            "automation": "[concat(variables('deploymentName'), '-auto')]",
+            "loganalytics": "[concat(variables('deploymentName'), '-loganalytics')]"
         },
         "automation": {
             "hardwareProfileVmSize": "Standard_D2s_v3",
             "imageName": "pack",
-            "scriptBaseURL": "https://raw.githubusercontent.com/chgeuer/azure_automation_postgresql_msi/master/serverscripts/"
+            "scriptBaseURL": "https://raw.githubusercontent.com/chgeuer/azure_automation_postgresql_msi/master/serverscripts/",
+            "source": {
+                "repo": "https://raw.githubusercontent.com/chgeuer/azure_automation_postgresql_msi/",
+                "revision": "master"
+            }
         },
         "adminUserName": "chgeuer",
         "adminPassword": "[parameters('adminPassword')]",
@@ -29,16 +34,18 @@
             "keyvault_vaults": "2018-02-14",
             "keyvault_vaults_secrets": "2018-02-14",
             "managedidentity_userassignedidentities": "2018-11-30",
-            "virtualmachineimages_imagetemplates": "2019-05-01-preview",
+            "virtualmachines": "2019-03-01",
+            "virtualmachines_extensions": "2019-03-01",
             "virtualmachineimages": "2019-03-01",
-            "virtualMachines": "2019-03-01",
+            "virtualmachineimages_imagetemplates": "2019-05-01-preview",
             "publicIPAddresses": "2017-08-01",
             "networkInterfaces": "2016-09-01",
             "networkSecurityGroups": "2017-06-01",
             "virtualNetworks": "2017-08-01",
             "dbforpostgresql_servers": "2017-12-01-preview",
             "automation_automationAccounts": "2015-10-31",
-            "automation_automationAccounts_runbooks": "2018-06-30"
+            "automation_automationAccounts_runbooks": "2018-06-30",
+            "operationalInsights_workspaces": "2017-03-15-preview"
         },
         "vnet": {
             "addresses": {
@@ -149,11 +156,22 @@
             ]
         },
         {
+            "type": "Microsoft.OperationalInsights/workspaces",
+            "name": "[variables('names').loganalytics]",
+            "apiVersion": "[variables('apiVersion').operationalInsights_workspaces]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "sku": { "name": "PerGB2018" },
+                "features": { "searchVersion": 1 }
+            }
+        },
+        {
             "type": "Microsoft.Automation/automationAccounts",
             "apiVersion": "[variables('apiVersion').automation_automationAccounts]",
             "name": "[variables('names').automation]",
             "location": "[resourceGroup().location]",
             "tags": { "displayName": "Automation Account" },
+            "dependsOn": [ "[concat('Microsoft.OperationalInsights/workspaces/', variables('names').loganalytics)]" ],
             "properties": { "sku": { "name": "Basic" } },
             "resources": [
                 {
@@ -283,7 +301,7 @@
         {
             "name": "[concat(variables('deploymentName'), '-vm-autom', string(copyIndex()))]",
             "type": "Microsoft.Compute/virtualMachines",
-            "apiVersion": "[variables('apiVersion').virtualMachines]",
+            "apiVersion": "[variables('apiVersion').virtualmachines]",
             "location": "[resourceGroup().location]",
             "copy": {
                 "name": "vm-automationworker-copy",
@@ -329,7 +347,32 @@
                         "managedDisk": { "storageAccountType": "Premium_LRS" }
                     }
                 }
-            }
+            },
+            "resources": [
+                {
+                    "type": "extensions",
+                    "location": "[resourceGroup().location]",
+                    "name": "RegisterAzureAutomation",
+                    "apiVersion": "[variables('apiVersion').virtualmachines_extensions]",
+                    "dependsOn": [
+                        "[concat('Microsoft.Compute/virtualMachines/', concat(variables('deploymentName'), '-vm-autom', string(copyIndex())))]"
+                    ],
+                    "properties": {
+                        "type": "CustomScriptExtension",
+                        "publisher": "Microsoft.Compute",
+                        "typeHandlerVersion": "1.9",
+                        "autoUpgradeMinorVersion": true,
+                        "settings": {
+                            "fileUris": [
+                                "[concat(variables('automation').source.repo, variables('automation').source.revision, '/serverscripts/InstallPostgresqlODBCDriverSetup.ps1')]",
+                                "[concat(variables('automation').source.repo, variables('automation').source.revision, '/serverscripts/JoinAzureAutomationHybridWorkerGroup.ps1')]",
+                                "[concat(variables('automation').source.repo, variables('automation').source.revision, '/serverscripts/RegisterVM.ps1')]"
+                            ],
+                            "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -File RegisterVM.ps1 | Out-File -FilePath registation_log.txt')]"
+                        }
+                    }
+                }
+            ]
         }
     ],
     "functions": [

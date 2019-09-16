@@ -1,14 +1,30 @@
 {
     "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
     "contentVersion": "2.0.0.0",
+    "variables": {
+        "deploymentName": "chgp",
+        "names": {
+            "builder": "[concat(variables('deploymentName'), '-builder')]"
+        },
+        "automation": {
+            "imageName": "imgbuilder",
+            "baseImageVersion": "2019.0.20190603",
+            "fix": {
+                "repo": "chgeuer/external_azureautomation_runbooks",
+                "revision": "d83c4994f2c93232720a987609fd7d2a712de05a"
+            }
+        },
+        "apiVersion": {
+            "virtualmachineimages_imagetemplates": "2019-05-01-preview"
+        }
+    },
     "resources": [
         {
-            "name": "imagebuilder2",
-            "location": "westus2",
-            "resourceGroup": "automation",
+            "name": "[variables('names').builder]",
             "type": "Microsoft.VirtualMachineImages/imageTemplates",
-            "tags": { "imagebuilderTemplate": "windows2019" },
-            "identity": {},
+            "apiVersion": "[variables('apiVersion').virtualmachineimages_imagetemplates]",
+            "location": "westus2",
+            "tags": { "displayName": "Azure Image Builder" },
             "kind": null,
             "plan": null,
             "sku": null,
@@ -16,20 +32,15 @@
             "properties": {
                 "buildTimeoutInMinutes": 100,
                 "source": {
-                    "offer": "WindowsServer",
-                    "publisher": "MicrosoftWindowsServer",
-                    "sku": "2019-Datacenter",
                     "type": "PlatformImage",
-                    "version": "2019.0.20190603"
+                    "publisher": "MicrosoftWindowsServer",
+                    "offer": "WindowsServer",
+                    "sku": "2019-Datacenter",
+                    "version": "[variables('automation').baseImageVersion]"
                 },
                 "customize": [
                     {
-                        "name": "CreateBuildPath",
-                        "type": "PowerShell",
-                        "scriptUri": "https://raw.githubusercontent.com/danielsollondon/azvmimagebuilder/master/testPsScript.ps1"
-                    },
-                    {
-                        "name": "settingUpMgmtAgtPath",
+                        "name": "settingUpScripts",
                         "type": "PowerShell",
                         "inline": [
                             "Install-PackageProvider Nuget -Force",
@@ -37,27 +48,22 @@
                             "Install-Module -Name AzureRM -Force",
                             "Install-Module -Name AzureRM.KeyVault -Force",
                             "Install-Module -Name AzureRM.Resources -Force",
-                            "Install-Script -Name New-OnPremiseHybridWorker -Force",
-                            "(New-Object System.Net.WebClient).DownloadFile(\"https://raw.githubusercontent.com/chgeuer/external_azureautomation_runbooks/180a18dd3982c8a1e511f28d1181a8fe208feadd/Utility/ARM/New-OnPremiseHybridWorker.ps1\", \"C:\\Program Files\\WindowsPowerShell\\Scripts\\New-OnPremiseHybridWorker.ps1\");"
+                            "Install-Script -Name New-OnPremiseHybridWorker -Force"
                         ]
                     },
                     {
-                        "name": "downloadBuildArtifacts",
+                        "name": "downloadFixedScript",
                         "type": "File",
-                        "sourceUri": "https://raw.githubusercontent.com/danielsollondon/azvmimagebuilder/master/quickquickstarts/exampleArtifacts/buildArtifacts/index.html",
-                        "destination": "c:\\buildArtifacts\\index.html"
+                        "sourceUri": "[concat('https://raw.githubusercontent.com/', variables('automation').fix.repo, '/', variables('automation').fix.revision, '/Utility/ARM/New-OnPremiseHybridWorker.ps1')]",
+                        "destination": "C:\\Program Files\\WindowsPowerShell\\Scripts\\New-OnPremiseHybridWorker.ps1"
                     }
                 ],
                 "distribute": [
                     {
                         "type": "ManagedImage",
-                        "location": "westeurope",
                         "runOutputName": "runOutputName",
-                        "imageId": "/subscriptions/724467b5-bee4-484b-bf13-d6a5505d2b51/resourceGroups/automation/providers/Microsoft.Compute/images/foo123",
-                        "artifactTags": {
-                            "baseosimg": "windows2019",
-                            "source": "azVmImageBuilder"
-                        }
+                        "location": "[resourceGroup().location]",
+                        "imageId": "[resourceId('Microsoft.Compute/images', variables('automation').imageName)]"
                     }
                 ]
             }

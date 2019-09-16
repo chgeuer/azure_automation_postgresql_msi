@@ -20,12 +20,8 @@ az feature show --namespace Microsoft.VirtualMachineImages --name VirtualMachine
 # https://docs.microsoft.com/en-us/azure/virtual-machines/linux/image-builder-overview#permissions
 
 az resource list --resource-group automation --resource-type Microsoft.VirtualMachineImages/imageTemplates | jq -r ".[].id"
-az resource show --resource-group automation --resource-type Microsoft.VirtualMachineImages/imageTemplates --name imagebuiilder123
-az resource delete --resource-group automation --resource-type Microsoft.VirtualMachineImages/imageTemplates --name imagebuiilder123 --verbose
-
-az resource list --resource-group automation --resource-type Microsoft.VirtualMachineImages/imageTemplates | jq -r ".[].id"
-
-az resource show --resource-group automation --resource-type Microsoft.VirtualMachineImages/imageTemplates --name imagebuilder2
+az resource show --resource-group automation --resource-type Microsoft.VirtualMachineImages/imageTemplates --name chgp-builder
+az resource delete --resource-group automation --resource-type Microsoft.VirtualMachineImages/imageTemplates --name chgp-builder --verbose
 
 subscriptionID="724467b5-bee4-484b-bf13-d6a5505d2b51"
 imageResourceGroup="automation"
@@ -36,7 +32,13 @@ az resource show \
     --ids "/subscriptions/$subscriptionID/resourcegroups/$imageResourceGroup/providers/Microsoft.VirtualMachineImages/imageTemplates/$imageTemplateName/runOutputs/$runOutputName"  \
     --api-version=2019-05-01-preview
 
-az resource invoke-action --resource-group "automation" --resource-type Microsoft.VirtualMachineImages/imageTemplates --name "imagebuilder2" --action Run
+
+
+# $vars = Get-Content -Raw -Path "$($PSScriptRoot)\imagebuilder.json" | ConvertFrom-Json
+# $vars = Get-Content -Raw -Path "imagebuilder.json" | ConvertFrom-Json
+# $buildername = $($vars.variables.deploymentName + "-builder")
+
+az resource invoke-action --resource-group "automation" --resource-type Microsoft.VirtualMachineImages/imageTemplates --name chgp-builder --action Run
 
 az vm image list --location westus --publisher MicrosoftWindowsServer --offer WindowsServer --sku 2019-Datacenter --all --output table
 
