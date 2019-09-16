@@ -14,6 +14,8 @@
             "automation": "[concat(variables('deploymentName'), '-auto')]"
         },
         "automation": {
+            "hardwareProfileVmSize": "Standard_D2s_v3",
+            "imageName": "pack",
             "scriptBaseURL": "https://raw.githubusercontent.com/chgeuer/azure_automation_postgresql_msi/master/serverscripts/"
         },
         "adminUserName": "chgeuer",
@@ -152,9 +154,7 @@
             "name": "[variables('names').automation]",
             "location": "[resourceGroup().location]",
             "tags": { "displayName": "Automation Account" },
-            "properties": {
-                "sku": { "name": "Basic" }
-            },
+            "properties": { "sku": { "name": "Basic" } },
             "resources": [
                 {
                     "type": "runbooks",
@@ -180,7 +180,17 @@
                     "tags": { "displayName": "Variable containing the name of keyvault" },
                     "name": "keyvaultname",
                     "properties": {
-                      "value": "[automation.variableFromString(variables('names').keyvault))]",
+                      "value": "[automation.variableFromString(variables('names').keyvault)]",
+                      "isEncrypted": false
+                    }
+                },
+                {
+                    "type": "variables",
+                    "apiVersion": "[variables('apiVersion').automation_automationAccounts]",
+                    "dependsOn": [ "[concat('Microsoft.Automation/automationAccounts/', variables('names').automation)]" ],
+                    "name": "automationWorkerCount",
+                    "properties": {
+                      "value": "[automation.variableFromInt(variables('automationWorkerCount'))]",
                       "isEncrypted": false
                     }
                 }
@@ -191,9 +201,7 @@
             "apiVersion": "[variables('apiVersion').networkSecurityGroups]",
             "location": "[resourceGroup().location]",
             "name": "[concat(variables('deploymentName'), '-nsg-automation')]",
-            "tags": {
-                "displayName": "NetworkSecurityGroup Automation"
-            },
+            "tags": { "displayName": "NetworkSecurityGroup Automation" },
             "properties": {
                 "securityRules": [
                     {
@@ -221,9 +229,7 @@
             "dependsOn": [
                 "[concat('Microsoft.Network/networkSecurityGroups/', concat(variables('deploymentName'), '-nsg-automation'))]"
             ],
-            "tags": {
-                "displayName": "A virtual network"
-            },
+            "tags": { "displayName": "A virtual network" },
             "properties": {
                 "addressSpace": {
                     "addressPrefixes": [
@@ -295,10 +301,10 @@
             },
             "tags": {
                 "displayName": "An Azure Automation VM",
-                "automationaccountname": "chgeuerautomation",
+                "automationaccountname": "[variables('names').automation]",
                 "hybridgroupname": "chgeuerautomation_hybrid_group",
                 "workspacename": "loganalyticsworkspacechgeuer1",
-                "keyvaultname": "chgeuerautomationkv"
+                "keyvaultname": "[variables('names').keyvault]"
             },
             "properties": {
                 "networkProfile": { "networkInterfaces": [ { "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('deploymentName'), '-nic-automationworker-', string(copyIndex())))]" } ] },
@@ -311,10 +317,10 @@
                         "provisionVMAgent": true
                     }
                 },
-                "hardwareProfile": { "vmSize": "Standard_D2s_v3" },
+                "hardwareProfile": { "vmSize": "[variables('automation').hardwareProfileVmSize]" }, 
                 "storageProfile": {
                     "imageReference": {
-                        "id": "/subscriptions/724467b5-bee4-484b-bf13-d6a5505d2b51/resourceGroups/automation/providers/Microsoft.Compute/images/foo123"
+                        "id": "[resourceId('Microsoft.Compute/images', variables('automation').imageName)]"
                     },
                     "osDisk": {
                         "name": "[concat(variables('deploymentName'), '-vm-automationworker-osdisk-', string(copyIndex()))]",
@@ -331,12 +337,12 @@
             "namespace": "automation",
             "members": {
                 "variableFromString": {
-                    "parameters": [ { "name": "value", "type": "string" } ],
+                    "parameters": [ { "type": "string", "name": "value" } ],
                     "output": { "type": "string", "value": "[concat('\"', parameters('value'), '\"')]" }
                 },
                 "variableFromInt": {
-                    "parameters": [ { "name": "value", "type": "int" } ],
-                    "output": { "type": "string", "value": "[parameters('value')]" }
+                    "parameters": [ { "type": "int", "name": "value" } ],
+                    "output": { "type": "int", "value": "[parameters('value')]" }
                 }
             }
         },

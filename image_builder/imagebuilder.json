@@ -1,0 +1,66 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "2.0.0.0",
+    "resources": [
+        {
+            "name": "imagebuilder2",
+            "location": "westus2",
+            "resourceGroup": "automation",
+            "type": "Microsoft.VirtualMachineImages/imageTemplates",
+            "tags": { "imagebuilderTemplate": "windows2019" },
+            "identity": {},
+            "kind": null,
+            "plan": null,
+            "sku": null,
+            "managedBy": null,
+            "properties": {
+                "buildTimeoutInMinutes": 100,
+                "source": {
+                    "offer": "WindowsServer",
+                    "publisher": "MicrosoftWindowsServer",
+                    "sku": "2019-Datacenter",
+                    "type": "PlatformImage",
+                    "version": "2019.0.20190603"
+                },
+                "customize": [
+                    {
+                        "name": "CreateBuildPath",
+                        "type": "PowerShell",
+                        "scriptUri": "https://raw.githubusercontent.com/danielsollondon/azvmimagebuilder/master/testPsScript.ps1"
+                    },
+                    {
+                        "name": "settingUpMgmtAgtPath",
+                        "type": "PowerShell",
+                        "inline": [
+                            "Install-PackageProvider Nuget -Force",
+                            "Install-Module -Name PowerShellGet -Force",
+                            "Install-Module -Name AzureRM -Force",
+                            "Install-Module -Name AzureRM.KeyVault -Force",
+                            "Install-Module -Name AzureRM.Resources -Force",
+                            "Install-Script -Name New-OnPremiseHybridWorker -Force",
+                            "(New-Object System.Net.WebClient).DownloadFile(\"https://raw.githubusercontent.com/chgeuer/external_azureautomation_runbooks/180a18dd3982c8a1e511f28d1181a8fe208feadd/Utility/ARM/New-OnPremiseHybridWorker.ps1\", \"C:\\Program Files\\WindowsPowerShell\\Scripts\\New-OnPremiseHybridWorker.ps1\");"
+                        ]
+                    },
+                    {
+                        "name": "downloadBuildArtifacts",
+                        "type": "File",
+                        "sourceUri": "https://raw.githubusercontent.com/danielsollondon/azvmimagebuilder/master/quickquickstarts/exampleArtifacts/buildArtifacts/index.html",
+                        "destination": "c:\\buildArtifacts\\index.html"
+                    }
+                ],
+                "distribute": [
+                    {
+                        "type": "ManagedImage",
+                        "location": "westeurope",
+                        "runOutputName": "runOutputName",
+                        "imageId": "/subscriptions/724467b5-bee4-484b-bf13-d6a5505d2b51/resourceGroups/automation/providers/Microsoft.Compute/images/foo123",
+                        "artifactTags": {
+                            "baseosimg": "windows2019",
+                            "source": "azVmImageBuilder"
+                        }
+                    }
+                ]
+            }
+        }
+    ]
+}

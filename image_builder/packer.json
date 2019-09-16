@@ -1,0 +1,44 @@
+{
+    "variables": {
+        "azure_subscription_id": "724467b5-bee4-484b-bf13-d6a5505d2b51",
+        "resource_group": "automation"
+    },
+    "builders": [
+        {
+            "type": "azure-arm",
+            "cloud_environment_name": "Public",
+            "subscription_id": "{{user `azure_subscription_id`}}",
+            "location": "westeurope",
+            "vm_size": "Standard_D3_v2",
+
+            "managed_image_name": "pack",
+            "managed_image_resource_group_name": "{{user `resource_group`}}",
+
+            "os_type": "Windows",
+            "image_publisher": "MicrosoftWindowsServer",
+            "image_offer": "WindowsServer",
+            "image_sku": "2019-Datacenter",
+            "image_version": "2019.0.20190603",
+
+            "communicator": "winrm",
+            "winrm_use_ssl": "true",
+            "winrm_insecure": "true",
+            "winrm_timeout": "3m",
+            "winrm_username": "packer"
+        }
+    ],
+    "provisioners": [
+        {
+            "type": "powershell",
+            "inline": [
+                "Install-PackageProvider Nuget -Force",
+                "Install-Module -Name PowerShellGet -Force",
+                "Install-Module -Name AzureRM -Force",
+                "Install-Module -Name AzureRM.KeyVault -Force",
+                "Install-Module -Name AzureRM.Resources -Force",
+                "Install-Script -Name New-OnPremiseHybridWorker -Force",
+                "(New-Object System.Net.WebClient).DownloadFile(\"https://raw.githubusercontent.com/chgeuer/external_azureautomation_runbooks/180a18dd3982c8a1e511f28d1181a8fe208feadd/Utility/ARM/New-OnPremiseHybridWorker.ps1\", \"C:\\Program Files\\WindowsPowerShell\\Scripts\\New-OnPremiseHybridWorker.ps1\");"
+            ]
+        }
+    ]
+}
