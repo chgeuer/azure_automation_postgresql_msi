@@ -11,20 +11,18 @@ foreach ($tag in $rawMetadata.compute.tags.split(";")) {
     $tags[$key] = $value
 }
 
-
 $SubscriptionID = $rawMetadata.compute.subscriptionId
 $ResourceGroupName = $rawMetadata.compute.resourceGroupName
 $AutomationAccountName = $tags.automationaccountname
 $HybridWorkerGroupName =  $tags.hybridgroupname
 $WorkspaceName = $tags.workspacename
 
-
-Write-Output ( "Joining VM in subscription """ + $SubscriptionID + """")
+Write-Output ( "Joining VM in subscription ""$SubscriptionID""")
 Write-Output ( "Automation account") 
-Write-Output ( "   resource group ........ """ + $ResourceGroupName)
-Write-Output ( "   account name .......... """ + $AutomationAccountName + """")
-Write-Output ( "   hybrid worker group ... """ + $HybridWorkerGroupName + """")
-Write-Output ( "OMS Workspace ............ """ + $WorkspaceName + """");
+Write-Output ( "   resource group ........ ""$ResourceGroupName""")
+Write-Output ( "   account name .......... ""$AutomationAccountName""")
+Write-Output ( "   hybrid worker group ... ""$HybridWorkerGroupName""")
+Write-Output ( "OMS Workspace ............ ""$WorkspaceName""");
 
 # Tags
 # automationaccountname=chgeuerautomation
