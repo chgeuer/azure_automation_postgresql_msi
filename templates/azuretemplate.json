@@ -73,6 +73,20 @@
             "tags": { "displayName": "User-assigned Identity" }
         },
         {
+            "type": "Microsoft.Authorization/roleAssignments",
+            "name": "[guid(resourceGroup().id, 'forTheresourcegroup')]",
+            "apiVersion": "[variables('apiVersion').authorization_roleassignments]",
+            "tags": { "displayName": "Role Assignment for Resource Group" },
+            "dependsOn": [ 
+                "[concat('Microsoft.ManagedIdentity/userAssignedIdentities/', variables('names').identity)]"
+            ],
+            "properties": {
+                "roleDefinitionId": "[variables('roles').Contributor]",
+                "principalType": "ServicePrincipal",
+                "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('names').identity), variables('apiVersion').managedidentity_userassignedidentities).principalId]"
+            }
+        },
+        {
             "type": "Microsoft.DBforPostgreSQL/servers",
             "apiVersion": "[variables('apiVersion').dbforpostgresql_servers]",
             "location": "[resourceGroup().location]",
@@ -406,7 +420,7 @@
                                 "[concat(variables('automation').source.repo, variables('automation').source.revision, '/serverscripts/JoinAzureAutomationHybridWorkerGroup.ps1')]",
                                 "[concat(variables('automation').source.repo, variables('automation').source.revision, '/serverscripts/RegisterVM.ps1')]"
                             ],
-                            "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -File RegisterVM.ps1 | Out-File -FilePath registation_log.txt')]"
+                            "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -File RegisterVM.ps1')]"
                         }
                     }
                 }
