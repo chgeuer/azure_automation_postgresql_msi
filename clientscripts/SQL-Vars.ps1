@@ -6,4 +6,4 @@ $vars = Get-Content -Raw -Path "$($PSScriptRoot)\..\vars.json" | ConvertFrom-Jso
 $AzurePostgreSQLInstance = $vars.PostgreSQL.Host
 $AzurePostgreSQLDatabase = $vars.PostgreSQL.Database
 $SqlUsername =             $vars.PostgreSQL.User
-$SqlPassword = (Get-Content -Raw -Path $env:USERPROFILE\.pgpass).Split(":")[4].Trim()
+$SqlPassword = (Get-Content -First 1 -Path $env:USERPROFILE\.pgpass).Split(":")[4].Trim()

@@ -5,7 +5,7 @@
         "adminPassword": { "type": "securestring", "defaultValue": "..." }
     },
     "variables": {
-        "deploymentName": "chgp",
+        "deploymentName": "sapdsc",
         "names": {
             "keyvault": "[concat(variables('deploymentName'), '-kv')]",
             "identity": "[concat(variables('deploymentName'), '-identity')]",
@@ -59,7 +59,7 @@
                 }
             }
         },
-        "automationWorkerCount": 1,
+        "automationWorkerCount": 2,
         "roles": {
             "Contributor": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]"
         }
@@ -74,7 +74,7 @@
         },
         {
             "type": "Microsoft.Authorization/roleAssignments",
-            "name": "[guid(resourceGroup().id, 'forTheresourcegroup')]",
+            "name": "[guid(resourceGroup().id, variables('names').identity)]",
             "apiVersion": "[variables('apiVersion').authorization_roleassignments]",
             "tags": { "displayName": "Role Assignment for Resource Group" },
             "dependsOn": [ 
@@ -83,7 +83,8 @@
             "properties": {
                 "roleDefinitionId": "[variables('roles').Contributor]",
                 "principalType": "ServicePrincipal",
-                "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('names').identity), variables('apiVersion').managedidentity_userassignedidentities).principalId]"
+                "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('names').identity), variables('apiVersion').managedidentity_userassignedidentities).principalId]",
+                "scope": "[resourceGroup().id]"
             }
         },
         {
@@ -379,7 +380,7 @@
             "properties": {
                 "networkProfile": { "networkInterfaces": [ { "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('deploymentName'), '-nic-automationworker-', string(copyIndex())))]" } ] },
                 "osProfile": {
-                    "computerName": "[concat(variables('deploymentName'), '-vm-autom', string(copyIndex()))]",
+                    "computerName": "[concat('automation', string(copyIndex()))]",
                     "adminUsername": "[variables('adminUserName')]",
                     "adminPassword": "[variables('adminPassword')]",
                     "windowsConfiguration": {

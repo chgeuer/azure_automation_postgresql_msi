@@ -13,9 +13,11 @@ $DBResult = $DBCmd.ExecuteReader()
 while ($DBResult.Read()) {
     $tenant_name = $DBResult["tenant_name"]
     $subscription_id = $DBResult["subscription_id"]
-    Select-AzureRmSubscription -Subscription $subscription_id | Out-Null
-    foreach ($ResourceGroup in $(Get-AzureRmResourceGroup))
-    {
-        Write-Output ("Showing resources in $tenant_name : " + $ResourceGroup.ResourceGroupName)
-    }
+    Write-Host $subscription_id $tenant_name
+
+    # Select-AzureRmSubscription -Subscription $subscription_id | Out-Null
+    # foreach ($ResourceGroup in $(Get-AzureRmResourceGroup))
+    # {
+    #     Write-Output ("Showing resources in $tenant_name : " + $ResourceGroup.ResourceGroupName)
+    # }
 }
