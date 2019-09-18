@@ -1,3 +1,5 @@
+.\InstallAzureAutomationPackages.ps1
+
 .\InstallPostgresqlODBCDriverSetup.ps1 -PostgreSqlOdbcVersion "psqlodbc_11_01_0000-x64"
 
 $repo = "chgeuer/external_azureautomation_runbooks"

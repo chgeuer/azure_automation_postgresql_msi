@@ -392,7 +392,10 @@
                 "hardwareProfile": { "vmSize": "[variables('automation').hardwareProfileVmSize]" }, 
                 "storageProfile": {
                     "imageReference": {
-                        "id": "[resourceId('Microsoft.Compute/images', variables('automation').imageName)]"
+                        "publisher": "MicrosoftWindowsServer",
+                        "offer": "WindowsServer",
+                        "sku": "2019-Datacenter",
+                        "version": "latest"
                     },
                     "osDisk": {
                         "name": "[concat(variables('deploymentName'), '-vm-automationworker-osdisk-', string(copyIndex()))]",
@@ -418,6 +421,7 @@
                         "autoUpgradeMinorVersion": true,
                         "settings": {
                             "fileUris": [
+                                "[concat(variables('automation').source.repo, variables('automation').source.revision, '/serverscripts/InstallAzureAutomationPackages.ps1')]",
                                 "[concat(variables('automation').source.repo, variables('automation').source.revision, '/serverscripts/InstallPostgresqlODBCDriverSetup.ps1')]",
                                 "[concat(variables('automation').source.repo, variables('automation').source.revision, '/serverscripts/JoinAzureAutomationHybridWorkerGroup.ps1')]",
                                 "[concat(variables('automation').source.repo, variables('automation').source.revision, '/serverscripts/RegisterVM.ps1')]"
