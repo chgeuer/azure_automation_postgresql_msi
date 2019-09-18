@@ -47,11 +47,6 @@
                 "customize": [
                     {
                         "type": "PowerShell",
-                        "name": "CreateBuildPath",
-                        "scriptUri": "https://raw.githubusercontent.com/danielsollondon/azvmimagebuilder/master/testPsScript.ps1"
-                    },
-                    {
-                        "type": "PowerShell",
                         "name": "settingUpMgmtAgtPath",
                         "inline": [
                             "Install-PackageProvider Nuget -Force",

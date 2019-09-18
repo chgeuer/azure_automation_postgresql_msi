@@ -1,10 +1,11 @@
 {
+    "deploymentName": "chgp20190918",
     "KeyVault": {
-        "name": "chris-kv"
+        "name": "chgp20190918-kv"
     },
     "PostgreSQL": {
-        "Host": "chris-postgresql",
-        "User": "chris",
+        "Host": "chgp20190918-postgresql",
+        "User": "chgp20190918",
         "Database": "tenantdata"
     }
 }

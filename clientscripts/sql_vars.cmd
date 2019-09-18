@@ -7,6 +7,10 @@ REM
 REM Use jq.exe to read values from vars.json and copy them to environment variables
 REM
 
+set P=.deploymentName
+set V=DEPLOYMENTNAME
+for /f "tokens=*" %%a in ('cat %~dp0..\vars.json ^| jq -r %P%') do set %V%=%%a
+
 set P=.PostgreSQL.Host
 set V=POSTGRESQLHOST
 for /f "tokens=*" %%a in ('cat %~dp0..\vars.json ^| jq -r %P%') do set %V%=%%a

@@ -24,7 +24,7 @@
                 "revision": "master"
             }
         },
-        "adminUserName": "chgeuer",
+        "adminUserName": "[variables('deploymentName')]",
         "adminPassword": "[parameters('adminPassword')]",
         "postgresql": {
             "administratorLogin": "[variables('deploymentName')]",
@@ -308,7 +308,7 @@
         { 
             "type": "Microsoft.Network/publicIPAddresses",
             "apiVersion": "[variables('apiVersion').publicIPAddresses]",
-            "name": "[concat(variables('deploymentName'), '-vm-autom', string(copyIndex()), '-pubip')]",
+            "name": "[concat(variables('deploymentName'), '-vm-automation-', string(copyIndex()))]",
             "copy": {
                 "name": "vm-automationworker-publicIP-copy",
                 "count": "[variables('automationWorkerCount')]"
@@ -323,16 +323,16 @@
         },
         {
             "type": "Microsoft.Network/networkInterfaces",
-            "name": "[concat(variables('deploymentName'), '-nic-automationworker-', string(copyIndex()))]",
+            "name": "[concat(variables('deploymentName'), '-nic-automation-', string(copyIndex()))]",
             "apiVersion": "[variables('apiVersion').networkInterfaces]",
             "location": "[resourceGroup().location]",
             "copy": {
-                "name": "nic-automationWorker-copy",
+                "name": "nic-automation-copy",
                 "count": "[variables('automationWorkerCount')]"
             },
             "dependsOn": [
                 "[concat('Microsoft.Network/virtualNetworks/', variables('names').vnet)]",
-                "[concat('Microsoft.Network/publicIPAddresses/', concat(variables('deploymentName'), '-vm-autom', string(copyIndex()), '-pubip'))]"
+                "[concat('Microsoft.Network/publicIPAddresses/', concat(variables('deploymentName'), '-vm-automation-', string(copyIndex())))]"
             ],
             "tags": {
                 "displayName": "NIC Automation Worker"
@@ -346,14 +346,14 @@
                             "privateIpAddress": "[concat(variables('vnet').addresses.subnetPrefix.automation, string(add(10, copyIndex())))]",
                             "privateIPAllocationMethod": "Static",
                             "subnet": { "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', variables('names').vnet), '/subnets/', concat(variables('deploymentName'), '-subnet-automation'))]" },
-                            "publicIPAddress": { "id": "[concat(resourceId('Microsoft.Network/publicIPAddresses', concat(variables('deploymentName'), '-vm-autom', string(copyIndex()), '-pubip')))]" }
+                            "publicIPAddress": { "id": "[concat(resourceId('Microsoft.Network/publicIPAddresses', concat(variables('deploymentName'), '-vm-automation-', string(copyIndex()))))]" }
                         }
                     }
                 ]
             }
         },
         {
-            "name": "[concat(variables('deploymentName'), '-vm-autom', string(copyIndex()))]",
+            "name": "[concat(variables('deploymentName'), '-vm-automation-', string(copyIndex()))]",
             "type": "Microsoft.Compute/virtualMachines",
             "apiVersion": "[variables('apiVersion').virtualmachines]",
             "location": "[resourceGroup().location]",
@@ -363,7 +363,7 @@
             },
             "dependsOn": [ 
                 "[concat('Microsoft.ManagedIdentity/userAssignedIdentities/', variables('names').identity)]",
-                "[concat('Microsoft.Network/networkInterfaces/', concat(variables('deploymentName'), '-nic-automationworker-', string(copyIndex())))]"
+                "[concat('Microsoft.Network/networkInterfaces/', concat(variables('deploymentName'), '-nic-automation-', string(copyIndex())))]"
             ],
             "identity": {
                 "type": "UserAssigned",
@@ -379,7 +379,7 @@
                 "keyvaultname": "[variables('names').keyvault]"
             },
             "properties": {
-                "networkProfile": { "networkInterfaces": [ { "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('deploymentName'), '-nic-automationworker-', string(copyIndex())))]" } ] },
+                "networkProfile": { "networkInterfaces": [ { "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('deploymentName'), '-nic-automation-', string(copyIndex())))]" } ] },
                 "osProfile": {
                     "computerName": "[concat('automation', string(copyIndex()))]",
                     "adminUsername": "[variables('adminUserName')]",
@@ -409,7 +409,7 @@
                     "name": "RegisterAzureAutomation",
                     "apiVersion": "[variables('apiVersion').virtualmachines_extensions]",
                     "dependsOn": [
-                        "[concat('Microsoft.Compute/virtualMachines/', concat(variables('deploymentName'), '-vm-autom', string(copyIndex())))]"
+                        "[concat('Microsoft.Compute/virtualMachines/', concat(variables('deploymentName'), '-vm-automation-', string(copyIndex())))]"
                     ],
                     "properties": {
                         "type": "CustomScriptExtension",
