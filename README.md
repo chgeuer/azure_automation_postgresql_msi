@@ -63,3 +63,35 @@ $s = "JoinAzureAutomationHybridWorkerGroup.ps1"
 - Azure Automation scripts using data from PostgreSQL database. Azure Automation being able
   to access PostgreSQL DB, even with Private Link.
 - Support for multiple subscriptions.
+
+
+## Demo walkthrough
+
+1. Choose password and prefix
+    password: G6zu8.-JkG5th
+    prefix: uniqprefixde123
+2. Deploy ARM template `templates/azuretemplate.json`
+3. put prefix value into `vars.json`
+4. Give the user-assigned identity contributor rights on one or more subscriptions or resource groups
+5. Run `clientscripts\Get-SQL-Password.cmd` and paste the previously selected password
+6. Validate your setting by running `clientscripts\sql_display_connection.cmd` or by running `type %USERPROFILE%\.pgpass`
+7. Tweak `sql\create_table_and_sampledata.sql` with your subscription IDs
+8. Install psql.exe from [PostgreSQL](https://www.enterprisedb.com/download-postgresql-binaries)
+9. Run `clientscripts\sql_setup.cmd`
+
+You should see
+
+```
+PS C:\> .\clientscripts\sql_setup.cmd
+CREATE DATABASE
+CREATE TABLE
+INSERT 0 2
+  tenant_name  |           subscription_id
+---------------+--------------------------------------
+ Christian Sub | ....
+ Holger Sub    | ...
+ ```
+
+10. Navigate to the automation account / "hybrid worker groups" and check that there is a group with VMs in it
+11. You should be able to use the prefix as username, and the password to mstsc.exe into the VMs
+12. On the automation account, select the "PostgreSQL-Managed-Identity-Crawler" runbook, and run it on the Hybrid Worker pool.
